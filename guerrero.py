@@ -10,7 +10,8 @@ class Ley:
         self.conclusion = conclusion
 
     def aplica(self, contexto: List[str]) -> bool:
-        return all(condicion in contexto for condicion in self.condiciones)
+        # Simplificamos: la ley se aplica si alguna condición está en el texto de algún conocimiento
+        return any(any(cond in c_item.lower() for c_item in contexto) for cond in self.condiciones)
 
 class GuerreroIntelectual:
     def __init__(self, ruta_nucleo: str, ruta_memoria: str):
@@ -83,3 +84,40 @@ class GuerreroIntelectual:
                 self.conocimiento.append(e)
                 self.guardar_memoria()
             return "Ejemplo complejo registrado como conocimiento fáctico."
+
+    def preguntar(self, tema: str) -> list:
+        tema_lower = tema.lower()
+        resultados = [conocimiento for conocimiento in self.conocimiento if tema_lower in conocimiento.lower()]
+        return resultados
+
+    def estructurar_y_extraer_conceptos(self, texto: str) -> list:
+        palabras = texto.lower().split()
+        conceptos_comunes = [p.strip(".,:;()") for p in palabras if len(p) > 5 and p.isalpha()]
+        frecuencia = {c: conceptos_comunes.count(c) for c in set(conceptos_comunes)}
+        conceptos_ordenados = sorted(frecuencia.keys(), key=lambda x: frecuencia[x], reverse=True)
+        return conceptos_ordenados[:5]
+
+    def sintetizar_leyes_desde_conocimiento(self) -> int:
+        if len(self.conocimiento) < 3:
+            return 0
+
+        todo_el_texto = " ".join(self.conocimiento).lower()
+        conceptos_clave = self.estructurar_y_extraer_conceptos(todo_el_texto)
+        
+        nuevas_leyes_creadas = 0
+        if len(conceptos_clave) >= 2:
+            c1, c2 = conceptos_clave[0], conceptos_clave[1]
+            nueva_ley_desc = f"Ley Sintetizada: Existe una posible relación entre '{c1}' y '{c2}'."
+            nueva_ley_cond = c1
+            nueva_ley_conc = c2
+            
+            if not any(ley.descripcion == nueva_ley_desc for ley in self.leyes):
+                ley_sintetizada = Ley(nueva_ley_desc, [nueva_ley_cond], nueva_ley_conc)
+                self.leyes.append(ley_sintetizada)
+                print(f"[SÍNTESIS] Nueva ley creada: {nueva_ley_desc}")
+                nuevas_leyes_creadas += 1
+        
+        if nuevas_leyes_creadas > 0:
+            self.guardar_memoria()
+
+        return nuevas_leyes_creadas
